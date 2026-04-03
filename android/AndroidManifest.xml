@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.reactnativeandroidwidgets">
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application>
+        <!--
+            The host app's AndroidManifest.xml must also declare this receiver.
+            Copy the block below into your app's <application> section and replace
+            the package prefix if needed.
+        -->
+        <receiver
+            android:name="com.reactnativeandroidwidgets.RNWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.reactnativeandroidwidgets.WIDGET_CLICK" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_provider_info" />
+        </receiver>
+    </application>
+
+</manifest>
