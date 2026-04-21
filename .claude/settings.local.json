@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(tsx|ts|java|xml\\)$\")",
+      "Bash(npm run *)",
+      "Bash(yalc --version)",
+      "Bash(yalc publish *)"
+    ]
+  }
+}

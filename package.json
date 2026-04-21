@@ -32,7 +32,8 @@
   "license": "MIT",
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-view-shot": ">=3.0.0"
   },
   "devDependencies": {
     "@react-native-community/eslint-config": "^3.0.0",

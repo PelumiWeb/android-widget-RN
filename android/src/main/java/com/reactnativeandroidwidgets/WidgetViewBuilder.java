@@ -1,7 +1,10 @@
 package com.reactnativeandroidwidgets;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.view.View;
 import android.widget.RemoteViews;
 import android.app.PendingIntent;
@@ -9,6 +12,8 @@ import android.app.PendingIntent;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.File;
 
 public class WidgetViewBuilder {
 
@@ -110,6 +115,55 @@ public class WidgetViewBuilder {
             return Color.parseColor(colorStr);
         } catch (IllegalArgumentException e) {
             return Color.BLACK;
+        }
+    }
+
+    public static RemoteViews buildBitmapWidget(Context context, int widgetId,
+            String imageUri, String clickAction, String clickData, int maxBytes) {
+        try {
+            Bitmap bitmap = decodeSampledBitmap(imageUri, maxBytes);
+            if (bitmap == null) {
+                RemoteViews err = new RemoteViews(context.getPackageName(), R.layout.widget_error);
+                err.setTextViewText(R.id.error_text, "Could not decode: " + imageUri);
+                return err;
+            }
+            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_bitmap);
+            views.setImageViewBitmap(R.id.widget_bitmap_image, bitmap);
+            if (clickAction != null && !clickAction.isEmpty()) {
+                PendingIntent pi = RNWidgetProvider.createClickIntent(context, widgetId, clickAction, clickData);
+                views.setOnClickPendingIntent(R.id.widget_bitmap_root, pi);
+            }
+            return views;
+        } catch (Exception e) {
+            e.printStackTrace();
+            RemoteViews err = new RemoteViews(context.getPackageName(), R.layout.widget_error);
+            err.setTextViewText(R.id.error_text, "Bitmap error: " + e.getMessage());
+            return err;
+        }
+    }
+
+    private static Bitmap decodeSampledBitmap(String imageUri, int maxBytes) {
+        try {
+            String path = imageUri.startsWith("file://")
+                    ? imageUri.substring(7)
+                    : Uri.parse(imageUri).getPath();
+            if (path == null || !new File(path).exists()) return null;
+
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, opts);
+
+            int rawBytes = opts.outWidth * opts.outHeight * 4;
+            opts.inSampleSize = 1;
+            while (rawBytes / (opts.inSampleSize * opts.inSampleSize) > maxBytes) {
+                opts.inSampleSize *= 2;
+            }
+
+            opts.inJustDecodeBounds = false;
+            return BitmapFactory.decodeFile(path, opts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

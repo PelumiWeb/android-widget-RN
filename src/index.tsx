@@ -1,4 +1,5 @@
-import { NativeModules, NativeEventEmitter, Platform } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { NativeModules, NativeEventEmitter, Platform, View, StyleSheet } from "react-native";
 
 const { RNAndroidWidgets } = NativeModules;
 
@@ -73,6 +74,24 @@ export interface WidgetClickEvent {
   data?: Record<string, any>;
 }
 
+export interface BitmapWidgetOptions {
+  clickAction?: string;
+  clickData?: Record<string, any>;
+  /** PNG capture quality 0.0–1.0; defaults to 1.0 */
+  quality?: number;
+}
+
+export interface WidgetCanvasProps {
+  widgetName: string;
+  width: number;
+  height: number;
+  clickAction?: string;
+  clickData?: Record<string, any>;
+  /** Re-capture and push a new bitmap whenever any value in this array changes */
+  deps?: React.DependencyList;
+  children: React.ReactNode;
+}
+
 class AndroidWidgets {
   private listeners: Map<string, any> = new Map();
 
@@ -139,6 +158,61 @@ class AndroidWidgets {
     }
   }
 
+  async updateWidgetWithView(
+    widgetName: string,
+    viewRef: React.RefObject<any>,
+    options: BitmapWidgetOptions = {}
+  ): Promise<boolean> {
+    if (Platform.OS !== "android") return false;
+    let captureRef: (ref: any, opts: any) => Promise<string>;
+    try {
+      captureRef = require("react-native-view-shot").captureRef;
+    } catch {
+      console.error(
+        "[AndroidWidgets] react-native-view-shot is not installed. " +
+          "Run: npm install react-native-view-shot"
+      );
+      return false;
+    }
+    if (!viewRef.current) {
+      console.error("[AndroidWidgets] updateWidgetWithView: viewRef.current is null");
+      return false;
+    }
+    try {
+      const uri: string = await captureRef(viewRef.current, {
+        format: "png",
+        quality: options.quality ?? 1.0,
+        result: "tmpfile",
+      });
+      return this.updateWidgetWithBitmap(widgetName, uri, options);
+    } catch (error) {
+      console.error("[AndroidWidgets] Failed to capture view:", error);
+      return false;
+    }
+  }
+
+  async updateWidgetWithBitmap(
+    widgetName: string,
+    imageUri: string,
+    options: BitmapWidgetOptions = {}
+  ): Promise<boolean> {
+    if (Platform.OS !== "android") return false;
+    try {
+      const clickData = options.clickData
+        ? JSON.stringify(options.clickData)
+        : null;
+      return await RNAndroidWidgets.updateWidgetWithBitmap(
+        widgetName,
+        imageUri,
+        options.clickAction ?? "",
+        clickData
+      );
+    } catch (error) {
+      console.error("[AndroidWidgets] Failed to update widget with bitmap:", error);
+      return false;
+    }
+  }
+
   onWidgetClick(callback: (event: WidgetClickEvent) => void): () => void {
     if (!eventEmitter) return () => {};
     const subscription = eventEmitter.addListener("onWidgetClick", callback);
@@ -198,4 +272,63 @@ class AndroidWidgets {
   }
 }
 
-export default new AndroidWidgets();
+const androidWidgets = new AndroidWidgets();
+export default androidWidgets;
+
+/**
+ * Renders children off-screen and automatically pushes a bitmap snapshot
+ * to the named Android widget on mount and whenever `deps` changes.
+ *
+ * Place this anywhere in your app tree. It is invisible to the user
+ * (position: absolute, opacity: 0, off-screen coordinates) but fully
+ * laid out so react-native-view-shot can capture it.
+ *
+ * Example:
+ *   <WidgetCanvas widgetName="my_widget" width={320} height={160} deps={[count]}>
+ *     <View style={{ flex: 1, backgroundColor: 'blue' }}>
+ *       <Text style={{ color: 'white', fontSize: 32 }}>{count}</Text>
+ *     </View>
+ *   </WidgetCanvas>
+ */
+export function WidgetCanvas({
+  widgetName,
+  width,
+  height,
+  clickAction,
+  clickData,
+  deps = [],
+  children,
+}: WidgetCanvasProps) {
+  const viewRef = useRef<View>(null);
+
+  useEffect(() => {
+    // Defer one frame so the native layout pass completes before capture.
+    const timer = setTimeout(() => {
+      androidWidgets.updateWidgetWithView(widgetName, viewRef, {
+        clickAction,
+        clickData,
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgetName, clickAction, ...deps]);
+
+  return (
+    <View
+      ref={viewRef}
+      collapsable={false}
+      style={[styles.offscreen, { width, height }]}
+    >
+      {children}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  offscreen: {
+    position: "absolute",
+    opacity: 0,
+    top: -10000,
+    left: -10000,
+  },
+});

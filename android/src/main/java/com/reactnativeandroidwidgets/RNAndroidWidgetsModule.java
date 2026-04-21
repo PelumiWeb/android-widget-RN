@@ -194,6 +194,48 @@ public class RNAndroidWidgetsModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void updateWidgetWithBitmap(String widgetName, String imageUri,
+            String clickAction, String clickData, Promise promise) {
+        try {
+            WidgetConfig config = widgetRegistry.getWidget(widgetName);
+            if (config == null) {
+                promise.reject("WIDGET_NOT_FOUND", "Widget not registered: " + widgetName);
+                return;
+            }
+
+            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(reactContext);
+            ComponentName provider = new ComponentName(reactContext, RNWidgetProvider.class);
+            int[] widgetIds = appWidgetManager.getAppWidgetIds(provider);
+
+            boolean updated = false;
+            for (int widgetId : widgetIds) {
+                String storedName = WidgetDataStore.getWidgetName(reactContext, widgetId);
+                if (storedName == null || widgetName.equals(storedName)) {
+                    WidgetDataStore.saveWidgetName(reactContext, widgetId, widgetName);
+
+                    org.json.JSONObject rec = new org.json.JSONObject();
+                    rec.put("type", "bitmap");
+                    rec.put("imageUri", imageUri);
+                    if (clickAction != null && !clickAction.isEmpty()) rec.put("clickAction", clickAction);
+                    if (clickData != null) rec.put("clickData", clickData);
+                    WidgetDataStore.saveWidgetData(reactContext, widgetId, rec.toString());
+
+                    RemoteViews views = WidgetViewBuilder.buildBitmapWidget(
+                            reactContext, widgetId, imageUri, clickAction, clickData, 800_000);
+                    if (views != null) {
+                        appWidgetManager.updateAppWidget(widgetId, views);
+                        updated = true;
+                    }
+                }
+            }
+
+            promise.resolve(updated);
+        } catch (Exception e) {
+            promise.reject("BITMAP_UPDATE_ERROR", "Failed to update bitmap widget: " + e.getMessage(), e);
+        }
+    }
+
     public static void sendEvent(String eventName, @Nullable WritableMap params) {
         if (staticReactContext != null && staticReactContext.hasActiveCatalystInstance()) {
             staticReactContext

@@ -66,6 +66,18 @@ public class RNWidgetProvider extends AppWidgetProvider {
             int appWidgetId, String jsonData) {
         try {
             JSONObject data = new JSONObject(jsonData);
+
+            if ("bitmap".equals(data.optString("type"))) {
+                RemoteViews views = WidgetViewBuilder.buildBitmapWidget(
+                        context, appWidgetId,
+                        data.optString("imageUri", null),
+                        data.optString("clickAction", null),
+                        data.optString("clickData", null),
+                        800_000);
+                if (views != null) appWidgetManager.updateAppWidget(appWidgetId, views);
+                return;
+            }
+
             RemoteViews views = WidgetViewBuilder.buildWidgetView(context, appWidgetId, data);
             if (views != null) {
                 appWidgetManager.updateAppWidget(appWidgetId, views);
