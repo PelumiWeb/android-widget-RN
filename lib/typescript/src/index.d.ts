@@ -59,6 +59,9 @@ export interface BitmapWidgetOptions {
     /** PNG capture quality 0.0–1.0; defaults to 1.0 */
     quality?: number;
 }
+export interface IOSWidgetOptions {
+    appGroupId: string;
+}
 export interface WidgetCanvasProps {
     widgetName: string;
     width: number;
@@ -71,6 +74,8 @@ export interface WidgetCanvasProps {
 }
 declare class AndroidWidgets {
     private listeners;
+    private iosAppGroupId;
+    configureIOS(options: IOSWidgetOptions): void;
     registerWidget(config: WidgetConfig): Promise<boolean>;
     updateWidget(widgetName: string, data: WidgetData): Promise<boolean>;
     updateWidgetById(widgetId: number, data: WidgetData): Promise<boolean>;
