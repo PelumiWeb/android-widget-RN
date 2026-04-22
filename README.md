@@ -32,6 +32,15 @@ In `android/app/src/main/java/.../MainApplication.java`:
 import com.reactnativeandroidwidgets.RNAndroidWidgetsPackage;
 
 // inside getPackages():
+package.add(new RNAndroidWidgetsPackage());
+```
+
+In `android/app/src/main/java/.../MainApplication.kt`:
+
+```kotlin
+import com.reactnativeandroidwidgets.RNAndroidWidgetsPackage;
+
+// inside getPackages():
 add(new RNAndroidWidgetsPackage());
 ```
 
