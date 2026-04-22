@@ -32,22 +32,21 @@ cd ios && pod install
 
 In Xcode: **File → New → Target → Widget Extension**. Uncheck "Include Configuration Intent". Name it e.g. `MyWidget`.
 
-### 3. Enable App Groups
+### 3. Run the setup command
+
+From your React Native project root:
+
+```sh
+npx react-native-android-widgets setup-ios
+```
+
+This copies `RNWidget.swift` directly into your `ios/` folder and prints the remaining steps with exact instructions for your project.
+
+### 4. Enable App Groups
 
 In Xcode, select your **main app target** → Signing & Capabilities → **+ Capability → App Groups**. Add a group, e.g. `group.com.yourapp.widget`.
 
 Repeat for the **Widget Extension target** using the **same** group ID.
-
-### 4. Add the SwiftUI template
-
-Copy `node_modules/react-native-android-widgets/widget-template/RNWidget.swift` into your Widget Extension folder in Xcode. Open it and set the two constants at the top:
-
-```swift
-private let appGroupId = "group.com.yourapp.widget"  // your App Group ID
-private let widgetName = "my_widget"                 // matches registerWidget({ name })
-```
-
-Delete the placeholder files Xcode generated for the extension (they conflict with `@main` in the template).
 
 ### 5. Configure in JavaScript
 

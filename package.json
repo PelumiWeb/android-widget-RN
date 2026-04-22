@@ -1,6 +1,6 @@
 {
   "name": "react-native-android-widgets",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Android Home Screen Widgets for React Native",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -13,11 +13,15 @@
     "android",
     "ios",
     "widget-template",
+    "bin",
     "react-native-android-widgets.podspec",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__"
   ],
+  "bin": {
+    "react-native-android-widgets": "bin/setup-ios.js"
+  },
   "scripts": {
     "test": "jest",
     "typescript": "tsc --noEmit",
