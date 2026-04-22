@@ -32,7 +32,7 @@ In `android/app/src/main/java/.../MainApplication.java`:
 import com.reactnativeandroidwidgets.RNAndroidWidgetsPackage;
 
 // inside getPackages():
-packages.add(new RNAndroidWidgetsPackage());
+add(new RNAndroidWidgetsPackage());
 ```
 
 ### 2. Declare the widget receiver
