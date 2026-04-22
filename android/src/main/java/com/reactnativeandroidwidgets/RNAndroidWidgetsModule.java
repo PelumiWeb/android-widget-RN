@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.widget.RemoteViews;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
