@@ -81,6 +81,10 @@ export interface BitmapWidgetOptions {
   quality?: number;
 }
 
+export interface IOSWidgetOptions {
+  appGroupId: string;
+}
+
 export interface WidgetCanvasProps {
   widgetName: string;
   width: number;
@@ -94,6 +98,11 @@ export interface WidgetCanvasProps {
 
 class AndroidWidgets {
   private listeners: Map<string, any> = new Map();
+  private iosAppGroupId: string | null = null;
+
+  configureIOS(options: IOSWidgetOptions): void {
+    this.iosAppGroupId = options.appGroupId;
+  }
 
   async registerWidget(config: WidgetConfig): Promise<boolean> {
     if (Platform.OS !== "android") return false;
@@ -163,7 +172,7 @@ class AndroidWidgets {
     viewRef: React.RefObject<any>,
     options: BitmapWidgetOptions = {}
   ): Promise<boolean> {
-    if (Platform.OS !== "android") return false;
+    if (Platform.OS !== "android" && Platform.OS !== "ios") return false;
     let captureRef: (ref: any, opts: any) => Promise<string>;
     try {
       captureRef = require("react-native-view-shot").captureRef;
@@ -196,11 +205,33 @@ class AndroidWidgets {
     imageUri: string,
     options: BitmapWidgetOptions = {}
   ): Promise<boolean> {
+    const clickData = options.clickData
+      ? JSON.stringify(options.clickData)
+      : null;
+
+    if (Platform.OS === "ios") {
+      if (!this.iosAppGroupId) {
+        console.error(
+          "[AndroidWidgets] Call AndroidWidgets.configureIOS({ appGroupId }) before updating widgets on iOS."
+        );
+        return false;
+      }
+      try {
+        return await RNAndroidWidgets.updateWidgetWithBitmap(
+          widgetName,
+          imageUri,
+          this.iosAppGroupId,
+          options.clickAction ?? "",
+          clickData
+        );
+      } catch (error) {
+        console.error("[AndroidWidgets] iOS widget update failed:", error);
+        return false;
+      }
+    }
+
     if (Platform.OS !== "android") return false;
     try {
-      const clickData = options.clickData
-        ? JSON.stringify(options.clickData)
-        : null;
       return await RNAndroidWidgets.updateWidgetWithBitmap(
         widgetName,
         imageUri,

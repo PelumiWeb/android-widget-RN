@@ -1,8 +1,6 @@
 # react-native-android-widgets
 
-Create and manage Android home screen widgets from React Native. Design your widget UI with standard React Native components, or use the lower-level JSON component API — both are supported.
-
-> **Android only.** All API calls are no-ops on iOS.
+Create and manage home screen widgets from React Native — on both **Android** and **iOS**. Design your widget UI with standard React Native components, or use the lower-level JSON component API (Android only).
 
 ---
 
@@ -19,6 +17,49 @@ Install the peer dependency that handles view capture:
 ```sh
 npm install react-native-view-shot
 ```
+
+---
+
+## iOS setup
+
+### 1. Install pods
+
+```sh
+cd ios && pod install
+```
+
+### 2. Add a Widget Extension in Xcode
+
+In Xcode: **File → New → Target → Widget Extension**. Uncheck "Include Configuration Intent". Name it e.g. `MyWidget`.
+
+### 3. Enable App Groups
+
+In Xcode, select your **main app target** → Signing & Capabilities → **+ Capability → App Groups**. Add a group, e.g. `group.com.yourapp.widget`.
+
+Repeat for the **Widget Extension target** using the **same** group ID.
+
+### 4. Add the SwiftUI template
+
+Copy `node_modules/react-native-android-widgets/widget-template/RNWidget.swift` into your Widget Extension folder in Xcode. Open it and set the two constants at the top:
+
+```swift
+private let appGroupId = "group.com.yourapp.widget"  // your App Group ID
+private let widgetName = "my_widget"                 // matches registerWidget({ name })
+```
+
+Delete the placeholder files Xcode generated for the extension (they conflict with `@main` in the template).
+
+### 5. Configure in JavaScript
+
+Call `configureIOS` once before any widget updates (e.g. in `App.tsx` on mount):
+
+```ts
+import AndroidWidgets from 'react-native-android-widgets';
+
+AndroidWidgets.configureIOS({ appGroupId: 'group.com.yourapp.widget' });
+```
+
+Then use `WidgetCanvas` or `updateWidgetWithView` exactly as you would on Android — the API is identical.
 
 ---
 
