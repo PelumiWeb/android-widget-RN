@@ -1,70 +1,122 @@
 # react-native-android-widgets
 
-Create and manage home screen widgets from React Native — on both **Android** and **iOS**. Design your widget UI with standard React Native components, or use the lower-level JSON component API (Android only).
+Create and manage home screen widgets from React Native — on both **Android** and **iOS**. Design your widget UI using standard React Native components, just like any other screen in your app.
 
 ---
 
 ## Installation
 
 ```sh
-npm install react-native-android-widgets
-```
-
-### For the View-based approach (recommended)
-
-Install the peer dependency that handles view capture:
-
-```sh
-npm install react-native-view-shot
+npm install react-native-android-widgets react-native-view-shot
 ```
 
 ---
 
-## iOS setup
+## iOS Setup
 
-### 1. Install pods
+There are **2 steps in Xcode** and **1 command in your terminal**. That's it.
 
-```sh
-cd ios && pod install
-```
+### Step 1 — Create a Widget Extension in Xcode
 
-### 2. Add a Widget Extension in Xcode
+1. Open your project's `.xcworkspace` file in Xcode
+2. Go to **File → New → Target**
+3. Choose **Widget Extension** → click **Next**
+4. Give it a name (e.g. `MyWidget`), **uncheck** "Include Configuration Intent" → **Finish → Activate**
 
-In Xcode: **File → New → Target → Widget Extension**. Uncheck "Include Configuration Intent". Name it e.g. `MyWidget`.
+### Step 2 — Enable App Groups in Xcode
 
-### 3. Run the setup command
+App Groups let your app and the widget share data. You need to enable it on **both** targets.
 
-From your React Native project root:
+> **What is an App Group ID?** It's a name you make up yourself. Use your app's bundle ID as a base — e.g. if your bundle ID is `com.yourcompany.myapp`, your App Group ID would be `group.com.yourcompany.myapp.widget`. You can find your bundle ID in Xcode under your main app target → General tab.
+
+**On your main app target:**
+1. Click your project name in the Xcode sidebar
+2. Select your **main app target** (e.g. `MyApp`)
+3. Go to **Signing & Capabilities** tab
+4. Click **+ Capability** → search for **App Groups** → double-click it
+5. Click **+** and enter your App Group ID (e.g. `group.com.yourcompany.myapp.widget`)
+
+**On your Widget Extension target:**
+1. Switch to your **widget target** (e.g. `MyWidget`) in the same tab
+2. Click **+ Capability → App Groups**
+3. Your group ID will already appear — just **check the box**
+
+### Step 3 — Run the setup command
+
+From your **project root** (not inside `ios/`):
 
 ```sh
 npx react-native-android-widgets setup-ios
 ```
 
-This copies `RNWidget.swift` directly into your `ios/` folder and prints the remaining steps with exact instructions for your project.
+The command will ask you 3 questions:
 
-### 4. Enable App Groups
+| Question | Example answer |
+|----------|---------------|
+| Widget Extension target name | `MyWidget` |
+| App Group ID | `group.com.yourcompany.myapp.widget` |
+| Widget name | `my_widget` |
 
-In Xcode, select your **main app target** → Signing & Capabilities → **+ Capability → App Groups**. Add a group, e.g. `group.com.yourapp.widget`.
+It will then automatically:
+- Copy `RNWidget.swift` into your widget extension folder
+- Add it to the correct Xcode target (no drag-and-drop needed)
+- Pre-fill the App Group ID and widget name inside the file
+- Generate the entitlements file for the extension
 
-Repeat for the **Widget Extension target** using the **same** group ID.
+### Step 4 — Configure in JavaScript
 
-### 5. Configure in JavaScript
+Call `configureIOS` once when your app mounts, before any widget updates:
 
-Call `configureIOS` once before any widget updates (e.g. in `App.tsx` on mount):
+```tsx
+import AndroidWidgets, { WidgetCanvas } from 'react-native-android-widgets';
+import { useEffect } from 'react';
 
-```ts
-import AndroidWidgets from 'react-native-android-widgets';
+export default function App() {
+  useEffect(() => {
+    // iOS: tell the library which App Group to use
+    // Must match the App Group ID you entered during setup
+    AndroidWidgets.configureIOS({ appGroupId: 'group.com.yourcompany.myapp.widget' });
 
-AndroidWidgets.configureIOS({ appGroupId: 'group.com.yourapp.widget' });
+    // Register the widget (same on both platforms)
+    AndroidWidgets.registerWidget({
+      name: 'my_widget',
+      label: 'My Widget',
+      minWidth: 110,
+      minHeight: 110,
+    });
+  }, []);
+
+  return (
+    <>
+      {/* Your normal app UI */}
+
+      {/* WidgetCanvas is invisible — it captures the view and sends it to the widget */}
+      <WidgetCanvas widgetName="my_widget" width={320} height={160}>
+        <View style={{ flex: 1, backgroundColor: '#6200ee', padding: 20 }}>
+          <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold' }}>
+            Hello Widget!
+          </Text>
+        </View>
+      </WidgetCanvas>
+    </>
+  );
+}
 ```
 
-Then use `WidgetCanvas` or `updateWidgetWithView` exactly as you would on Android — the API is identical.
+### Step 5 — Build and run
+
+```sh
+cd ios && pod install
+npx react-native run-ios
+```
+
+To add the widget: long-press the home screen → **+** (top left) → search for your app → add the widget.
 
 ---
 
-## Android setup
+## Android Setup
 
-### 1. Register the package
+### Step 1 — Register the package
 
 In `android/app/src/main/java/.../MainApplication.java`:
 
@@ -72,19 +124,10 @@ In `android/app/src/main/java/.../MainApplication.java`:
 import com.reactnativeandroidwidgets.RNAndroidWidgetsPackage;
 
 // inside getPackages():
-package.add(new RNAndroidWidgetsPackage());
+packages.add(new RNAndroidWidgetsPackage());
 ```
 
-In `android/app/src/main/java/.../MainApplication.kt`:
-
-```kotlin
-import com.reactnativeandroidwidgets.RNAndroidWidgetsPackage;
-
-// inside getPackages():
-add(new RNAndroidWidgetsPackage());
-```
-
-### 2. Declare the widget receiver
+### Step 2 — Declare the widget receiver
 
 In `android/app/src/main/AndroidManifest.xml` inside `<application>`:
 
@@ -102,52 +145,28 @@ In `android/app/src/main/AndroidManifest.xml` inside `<application>`:
 </receiver>
 ```
 
----
-
-## Usage
-
-### Approach 1 — WidgetCanvas (design with React Native Views)
-
-This is the recommended approach. Write your widget UI exactly like any other React Native screen. The `WidgetCanvas` component renders it off-screen, captures a snapshot, and pushes it to the home screen widget automatically.
+### Step 3 — Register and use in JavaScript
 
 ```tsx
-import React, { useState, useEffect } from 'react';
-import { View, Text } from 'react-native';
 import AndroidWidgets, { WidgetCanvas } from 'react-native-android-widgets';
+import { useEffect } from 'react';
 
 export default function App() {
-  const [steps, setSteps] = useState(0);
-
   useEffect(() => {
-    // Register the widget type once on mount
     AndroidWidgets.registerWidget({
-      name: 'fitness_widget',
-      label: 'Fitness Tracker',
-      minWidth: 180,
+      name: 'my_widget',
+      label: 'My Widget',
+      minWidth: 110,
       minHeight: 110,
     });
   }, []);
 
   return (
     <>
-      {/* Your normal app UI */}
-
-      {/*
-        WidgetCanvas is invisible to the user.
-        It re-captures and updates the widget whenever `steps` changes.
-      */}
-      <WidgetCanvas
-        widgetName="fitness_widget"
-        width={320}
-        height={160}
-        deps={[steps]}
-        clickAction="OPEN_APP"
-      >
-        <View style={{ flex: 1, backgroundColor: '#6200ee', borderRadius: 16, padding: 20 }}>
-          <Text style={{ color: 'white', fontSize: 14, opacity: 0.8 }}>Today's steps</Text>
-          <Text style={{ color: 'white', fontSize: 48, fontWeight: 'bold' }}>{steps}</Text>
-          <Text style={{ color: 'white', fontSize: 12, opacity: 0.6, marginTop: 4 }}>
-            Tap to open app
+      <WidgetCanvas widgetName="my_widget" width={320} height={160}>
+        <View style={{ flex: 1, backgroundColor: '#6200ee', padding: 20 }}>
+          <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold' }}>
+            Hello Widget!
           </Text>
         </View>
       </WidgetCanvas>
@@ -156,104 +175,25 @@ export default function App() {
 }
 ```
 
-#### WidgetCanvas props
+To add the widget: long-press the home screen → **Widgets** → find your app → drag it onto the screen.
+
+---
+
+## WidgetCanvas props
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `widgetName` | `string` | ✓ | The registered widget name |
+| `widgetName` | `string` | ✓ | Must match the name used in `registerWidget` |
 | `width` | `number` | ✓ | Capture width in pixels |
 | `height` | `number` | ✓ | Capture height in pixels |
-| `deps` | `any[]` | | Re-capture when any value changes (like `useEffect` deps) |
+| `deps` | `any[]` | | Re-captures when any value changes (works like `useEffect` deps) |
 | `clickAction` | `string` | | Action string fired when user taps the widget |
 | `clickData` | `object` | | Extra data forwarded with the tap event |
 | `children` | `ReactNode` | ✓ | The View tree to render as the widget |
 
-#### Manual capture
-
-If you need more control over when the capture happens, use `updateWidgetWithView` directly:
-
-```tsx
-const viewRef = useRef(null);
-
-// Call this whenever you want to push a new snapshot
-await AndroidWidgets.updateWidgetWithView('fitness_widget', viewRef, {
-  clickAction: 'OPEN_APP',
-  clickData: { screen: 'Dashboard' },
-  quality: 0.9, // PNG quality 0.0–1.0
-});
-
-<View ref={viewRef} collapsable={false} style={{ width: 320, height: 160 }}>
-  {/* widget content */}
-</View>
-```
-
-Or if you already have a file URI (e.g. from your own capture pipeline):
-
-```ts
-await AndroidWidgets.updateWidgetWithBitmap('fitness_widget', 'file:///path/to/image.png', {
-  clickAction: 'OPEN_APP',
-});
-```
-
----
-
-### Approach 2 — JSON component tree
-
-For simpler widgets, you can describe the UI as a data structure and skip the view capture step entirely. No `react-native-view-shot` required.
-
-```ts
-import AndroidWidgets from 'react-native-android-widgets';
-
-await AndroidWidgets.registerWidget({
-  name: 'weather_widget',
-  label: 'Weather',
-  minWidth: 110,
-  minHeight: 110,
-});
-
-await AndroidWidgets.updateWidget('weather_widget', {
-  components: [
-    {
-      id: 'title',
-      type: 'text',
-      data: {
-        type: 'text',
-        text: '24° London',
-        textSize: 20,
-        textColor: '#ffffff',
-        backgroundColor: '#1e88e5',
-      },
-    },
-    {
-      id: 'refresh_btn',
-      type: 'button',
-      data: {
-        type: 'button',
-        text: 'Refresh',
-        action: 'refresh_weather',
-        data: { city: 'London' },
-      },
-    },
-  ],
-  clickAction: 'open_weather',
-  clickData: { city: 'London' },
-});
-```
-
-#### Supported component types
-
-| `type` | Required `data` fields | Optional fields |
-|--------|------------------------|-----------------|
-| `text` | `text: string` | `textSize`, `textColor`, `backgroundColor` |
-| `image` | `imageUri: string` | `contentDescription` |
-| `button` | `text: string`, `action: string` | `data: object` |
-| `container` | — | `children: WidgetComponent[]` |
-
 ---
 
 ## Handling widget taps
-
-Both approaches fire the same click event. Listen for it anywhere in your app:
 
 ```ts
 import { useEffect } from 'react';
@@ -261,11 +201,10 @@ import AndroidWidgets from 'react-native-android-widgets';
 
 useEffect(() => {
   const unsubscribe = AndroidWidgets.onWidgetClick((event) => {
-    console.log(event.action); // e.g. "OPEN_APP"
-    console.log(event.data);   // the clickData object you passed
+    console.log(event.action);   // e.g. "OPEN_APP"
+    console.log(event.data);     // the clickData object you passed
     console.log(event.widgetId);
 
-    // Navigate or dispatch based on the action
     if (event.action === 'OPEN_APP') {
       navigation.navigate('Dashboard');
     }
@@ -279,35 +218,21 @@ useEffect(() => {
 
 ## Full API reference
 
-### Widget registration
+### Registration
 
 ```ts
 AndroidWidgets.registerWidget(config: WidgetConfig): Promise<boolean>
-```
-
-Call once on app mount before pushing any updates.
-
-```ts
-interface WidgetConfig {
-  name: string;               // unique identifier used in all other calls
-  label: string;              // displayed in the widget picker
-  description?: string;
-  minWidth: number;           // dp
-  minHeight: number;          // dp
-  updatePeriodMillis?: number; // system-triggered update interval (min ~30 min)
-  resizeMode?: 'none' | 'horizontal' | 'vertical' | 'both';
-  widgetCategory?: 'home_screen' | 'keyguard';
-}
+AndroidWidgets.configureIOS({ appGroupId: string }): void  // iOS only, call before registerWidget
 ```
 
 ### Pushing updates
 
 ```ts
-// View-based (WidgetCanvas handles this automatically)
+// Recommended — WidgetCanvas handles this automatically
 AndroidWidgets.updateWidgetWithView(widgetName, viewRef, options?): Promise<boolean>
 AndroidWidgets.updateWidgetWithBitmap(widgetName, imageUri, options?): Promise<boolean>
 
-// JSON component-based
+// Android only — JSON component tree
 AndroidWidgets.updateWidget(widgetName, data): Promise<boolean>
 AndroidWidgets.updateWidgetById(widgetId, data): Promise<boolean>
 ```
@@ -323,32 +248,21 @@ AndroidWidgets.requestWidgetUpdate(widgetName): Promise<boolean>
 ### Lifecycle events
 
 ```ts
-// Returns an unsubscribe function — call it in useEffect cleanup
+// Each returns an unsubscribe function — use it in useEffect cleanup
 AndroidWidgets.onWidgetClick(callback): () => void
-AndroidWidgets.onWidgetEnabled(widgetName, callback): () => void   // first instance added
-AndroidWidgets.onWidgetDisabled(widgetName, callback): () => void  // last instance removed
-AndroidWidgets.onWidgetDeleted(callback): () => void               // specific instance removed
+AndroidWidgets.onWidgetEnabled(widgetName, callback): () => void
+AndroidWidgets.onWidgetDisabled(widgetName, callback): () => void
+AndroidWidgets.onWidgetDeleted(callback): () => void
 ```
-
----
-
-## How to place a widget on the home screen
-
-1. Long-press an empty area on the Android home screen
-2. Tap **Widgets**
-3. Find **RN Android Widgets** in the list
-4. Drag it onto the home screen
-
-Your app's `onWidgetEnabled` event will fire, and the widget will display as soon as you call `updateWidget` or `WidgetCanvas` mounts.
 
 ---
 
 ## Known limitations
 
-- **Click sub-regions (View approach):** The entire widget surface is one tap target. You cannot attach different actions to individual elements inside the widget when using `WidgetCanvas`. For per-element tap handling, use the JSON component approach with `button` components.
-- **Bitmap cache:** When using `WidgetCanvas`, the captured image is stored in the app's cache directory. If the cache is cleared between reboots, the widget will show a blank placeholder until the app launches and `WidgetCanvas` mounts again.
-- **Update frequency:** Android enforces a minimum ~30-minute interval for `updatePeriodMillis`. For real-time or user-triggered updates, call `updateWidget` / `updateWidgetWithView` directly from your app code.
-- **Remote images (JSON approach):** HTTP image URIs are not fetched automatically. Use bundled drawable resources accessed natively, or switch to the `WidgetCanvas` approach which supports any `<Image>` source React Native supports.
+- **Click sub-regions:** When using `WidgetCanvas`, the entire widget is one tap target. For per-element tap handling on Android, use the JSON component approach with `button` types instead.
+- **iOS widget refresh:** iOS widgets only refresh when your app is open and `WidgetCanvas` is mounted. Background refresh is controlled by WidgetKit, not by this library.
+- **Bitmap cache (Android):** The captured image is stored in the app's cache. If the cache is cleared, the widget shows a blank placeholder until the app relaunches.
+- **Update frequency (Android):** The system enforces a minimum ~30-minute interval for automatic updates. Call `updateWidgetWithView` directly for real-time updates.
 
 ---
 
