@@ -1,6 +1,6 @@
 {
   "name": "react-native-android-widgets",
-  "version": "1.2.3",
+  "version": "1.2.5",
   "description": "Android Home Screen Widgets for React Native",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
