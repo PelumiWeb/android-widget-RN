@@ -34,4 +34,15 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
+    <TextClock
+        android:id="@+id/widget_clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format12Hour="hh:mm a"
+        android:format24Hour="HH:mm"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
 </LinearLayout>

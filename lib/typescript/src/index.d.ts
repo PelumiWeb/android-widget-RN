@@ -21,10 +21,20 @@ export interface ButtonWidgetData {
     action: string;
     data?: Record<string, any>;
 }
+export interface ClockWidgetData {
+    type: "clock";
+    /** java.text.SimpleDateFormat pattern for 12-hour clocks, e.g. "hh:mm a". Defaults to "hh:mm a". */
+    format12?: string;
+    /** java.text.SimpleDateFormat pattern for 24-hour clocks, e.g. "HH:mm". Defaults to "HH:mm". */
+    format24?: string;
+    textSize?: number;
+    textColor?: string;
+    backgroundColor?: string;
+}
 export interface WidgetComponent {
     id: string;
-    type: "text" | "image" | "button" | "container";
-    data: TextWidgetData | ImageWidgetData | ButtonWidgetData | any;
+    type: "text" | "image" | "button" | "container" | "clock";
+    data: TextWidgetData | ImageWidgetData | ButtonWidgetData | ClockWidgetData | any;
     children?: WidgetComponent[];
     style?: {
         padding?: number;
@@ -70,6 +80,12 @@ export interface WidgetCanvasProps {
     clickData?: Record<string, any>;
     /** Re-capture and push a new bitmap whenever any value in this array changes */
     deps?: React.DependencyList;
+    /**
+     * Re-capture and push a new bitmap every N milliseconds while mounted and foregrounded.
+     * Useful for clock widgets or live-data widgets. Has no effect when the app is backgrounded.
+     * Minimum recommended value: 1000 (1 second).
+     */
+    refreshInterval?: number;
     children: React.ReactNode;
 }
 declare class AndroidWidgets {
@@ -89,6 +105,24 @@ declare class AndroidWidgets {
     onWidgetDisabled(widgetName: string, callback: () => void): () => void;
     onWidgetDeleted(callback: (widgetId: number) => void): () => void;
     removeAllListeners(): void;
+    /**
+     * Register a JS function to run when the Android background fetch fires.
+     * Call this once at app startup (e.g. in index.js, before AppRegistry.registerComponent).
+     *
+     * The handler receives `{ widgetName: string }` and should fetch data,
+     * then call `AndroidWidgets.updateWidget()` or `updateWidgetWithBitmap()`.
+     *
+     * Example:
+     *   AndroidWidgets.registerBackgroundHandler(async ({ widgetName }) => {
+     *     const data = await fetch('https://api.example.com/data').then(r => r.json());
+     *     await AndroidWidgets.updateWidget(widgetName, { components: [...] });
+     *   });
+     */
+    registerBackgroundHandler(handler: (taskData: {
+        widgetName: string;
+    }) => Promise<void>): void;
+    scheduleBackgroundFetch(widgetName: string, intervalMinutes: number): Promise<boolean>;
+    cancelBackgroundFetch(widgetName: string): Promise<boolean>;
 }
 declare const androidWidgets: AndroidWidgets;
 export default androidWidgets;
@@ -107,5 +141,5 @@ export default androidWidgets;
  *     </View>
  *   </WidgetCanvas>
  */
-export declare function WidgetCanvas({ widgetName, width, height, clickAction, clickData, deps, children, }: WidgetCanvasProps): React.JSX.Element;
+export declare function WidgetCanvas({ widgetName, width, height, clickAction, clickData, deps, refreshInterval, children, }: WidgetCanvasProps): React.JSX.Element;
 //# sourceMappingURL=index.d.ts.map

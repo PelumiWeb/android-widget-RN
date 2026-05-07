@@ -6,6 +6,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.widget.RemoteViews;
 
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+
+import java.util.concurrent.TimeUnit;
+
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -234,6 +243,41 @@ public class RNAndroidWidgetsModule extends ReactContextBaseJavaModule {
             promise.resolve(updated);
         } catch (Exception e) {
             promise.reject("BITMAP_UPDATE_ERROR", "Failed to update bitmap widget: " + e.getMessage(), e);
+        }
+    }
+
+    @ReactMethod
+    public void scheduleBackgroundFetch(String widgetName, int intervalMinutes, Promise promise) {
+        try {
+            Data inputData = new Data.Builder()
+                .putString(WidgetBackgroundWorker.KEY_WIDGET_NAME, widgetName)
+                .build();
+            PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(
+                    WidgetBackgroundWorker.class, intervalMinutes, TimeUnit.MINUTES)
+                .setInputData(inputData)
+                .setConstraints(new Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build())
+                .build();
+            WorkManager.getInstance(reactContext)
+                .enqueueUniquePeriodicWork(
+                    "widget_fetch_" + widgetName,
+                    ExistingPeriodicWorkPolicy.REPLACE,
+                    request);
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("SCHEDULE_ERROR", "Failed to schedule background fetch: " + e.getMessage(), e);
+        }
+    }
+
+    @ReactMethod
+    public void cancelBackgroundFetch(String widgetName, Promise promise) {
+        try {
+            WorkManager.getInstance(reactContext)
+                .cancelUniqueWork("widget_fetch_" + widgetName);
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("CANCEL_ERROR", "Failed to cancel background fetch: " + e.getMessage(), e);
         }
     }
 

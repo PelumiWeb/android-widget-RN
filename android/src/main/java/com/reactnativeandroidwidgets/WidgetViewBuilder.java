@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 import android.app.PendingIntent;
@@ -56,12 +57,35 @@ public class WidgetViewBuilder {
                 case "button":
                     processButtonComponent(context, views, component, widgetId);
                     break;
+                case "clock":
+                    processClockComponent(views, component);
+                    break;
                 case "container":
                     if (component.has("children")) {
                         processComponents(context, views, component.getJSONArray("children"), widgetId);
                     }
                     break;
             }
+        }
+    }
+
+    private static void processClockComponent(RemoteViews views, JSONObject component) throws JSONException {
+        JSONObject data = component.getJSONObject("data");
+        views.setViewVisibility(R.id.widget_clock, View.VISIBLE);
+        if (data.has("format12")) {
+            views.setCharSequence(R.id.widget_clock, "setFormat12Hour", data.getString("format12"));
+        }
+        if (data.has("format24")) {
+            views.setCharSequence(R.id.widget_clock, "setFormat24Hour", data.getString("format24"));
+        }
+        if (data.has("textSize")) {
+            views.setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_SP, data.getInt("textSize"));
+        }
+        if (data.has("textColor")) {
+            views.setTextColor(R.id.widget_clock, parseColor(data.getString("textColor")));
+        }
+        if (data.has("backgroundColor")) {
+            views.setInt(R.id.widget_clock, "setBackgroundColor", parseColor(data.getString("backgroundColor")));
         }
     }
 
