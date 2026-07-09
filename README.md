@@ -1,4 +1,4 @@
-# react-native-android-widgets
+# hp-react-native-widgets
 
 Create and manage home screen widgets from React Native — on both **Android** and **iOS**. Design your widget UI using standard React Native components, just like any other screen in your app.
 
